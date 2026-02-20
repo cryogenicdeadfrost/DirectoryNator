@@ -1,121 +1,91 @@
 # DirectoryNator
 
-DirectoryNator now ships with two full implementations:
+DirectoryNator is a Python CLI utility that maps directory/file hierarchies and can be used as both:
 
-- `DirectoryNator_v1.py` (Python) with interactive menu + CLI modes
-- `rust_nator/` (Rust) for low-level high-speed scanning, stress presets, binary output, and JSON data for GUI analytics
+1. a **filesystem inventory scanner**
+2. a **multithreading benchmark + throttling test tool**
+3. an **automation utility for periodic IT security/health scans**
 
-## What is new
+## What it does
 
-- simple menu driver for both Python and Rust
-- hardware auto-detection in both (OS, architecture, cores, runtime/system info)
-- improved benchmark scoring with depth-aware context
-- disk performance mode for SSD/HDD context testing
-- Rust JSON outputs designed for table+graph GUI inspection
-- GUI viewer for Rust JSON benchmark/stress/map outputs
+- Scans a target root path and maps folders/files into timestamped report files.
+- Supports BFS, DFS, Trie, and high-throughput multithread traversal.
+- Auto-detects practical thread counts from CPU cores.
+- Benchmarks multiple thread profiles and ranks them by runtime + files/sec.
+- Produces small JSON result files for quick machine-readable reporting.
+- Can run repeatedly in automation mode (e.g., every few minutes/hours/days via scheduler wrappers).
 
-## Python version
+## Requirements
 
-### Menu mode
+- Python 3.9+
+- No third-party dependencies (standard library only)
+
+## Quick start
 
 ```bash
 python DirectoryNator_v1.py
 ```
 
-Menu options:
+Interactive menu options:
 
-1. map
-2. bench
-3. disk
-4. quit
+1. Multi-Thread Option (CPU-aware)
+2. Algorithmic Options (Trie, BFS, DFS)
+3. Multithread Benchmark Mode
+4. Automation Mode (periodic runs)
+5. Exit
 
-### CLI modes
+## Non-interactive command modes
+
+### Multithread mapping
 
 ```bash
-python DirectoryNator_v1.py --mode map --root . --fast
-python DirectoryNator_v1.py --mode bench --root . --runs 2 --fast
-python DirectoryNator_v1.py --mode disk
+python DirectoryNator_v1.py --mode multithread --root /path/to/scan --threads 16 --throttle-ms 0
 ```
 
-Python outputs go to:
+### Benchmark mode
+
+```bash
+python DirectoryNator_v1.py --mode benchmark --root /path/to/scan --iterations 2 --throttle-ms 1
+```
+
+### Automation mode (for IT environment periodic checks)
+
+```bash
+python DirectoryNator_v1.py --mode automation --automation-mode multithread --root /path/to/scan --runs 4 --interval 300
+```
+
+Benchmark automation example:
+
+```bash
+python DirectoryNator_v1.py --mode automation --automation-mode benchmark --root /path/to/scan --runs 3 --interval 600 --iterations 2
+```
+
+## Output files
+
+All outputs are written under:
 
 ```text
 ./directorynator/
 ```
 
-## Rust version
+Generated artifacts include:
 
-Path: `rust_nator/`
-
-### Build
-
-```bash
-cd rust_nator
-cargo build --release
-```
-
-### Menu mode (interactive)
-
-```bash
-cargo run --release
-```
-
-### CLI modes
-
-```bash
-cargo run --release -- --mode map --root . --fmt both --name quick --fast
-cargo run --release -- --mode bench --root . --preset balanced --runs 2 --fast
-cargo run --release -- --mode stress --root . --preset hard --fast
-cargo run --release -- --mode disk --out rust_nator/out
-```
-
-### Key Rust args
-
-- `--mode map|bench|stress|disk`
-- `--root <path>`
-- `--out <path>`
-- `--workers <n>`
-- `--fast`
-- `--fmt text|bin|both`
-- `--preset light|balanced|hard|extreme`
-- `--runs <n>`
-- `--name <tag>`
-
-Rust outputs go to:
-
-```text
-rust_nator/out/
-```
-
-Artifacts:
-
-- `dnrs_<tag>_<ts>.txt`
-- `dnrs_<tag>_<ts>.bin`
-- `dnrs_<tag>_<ts>.json`
-- `dnrs_bench_<ts>.txt`
-- `dnrs_bench_<ts>.json`
-- `dnrs_stress_<ts>.json`
-- `dnrs_disk_<ts>.json`
-
-## Rust GUI analytics
-
-Open graph/table viewer:
-
-```bash
-python rust_nator/gui_viewer.py
-```
-
-What it shows:
-
-- worker table (`wk`, `ms`, `files`, `fps`, `deep`, `score`, `den`, `err`)
-- bar graph (`ms` and `score`)
-- detected hardware + root context from JSON
-
-This allows visual comparison of throttling/fast-mode/preset runs and better error mapping analysis.
+- Full mapping text reports
+  - `directorynator_multithread_<N>threads_<timestamp>.txt`
+  - `directorynator_bfs_<timestamp>.txt`
+  - `directorynator_dfs_<timestamp>.txt`
+  - `directorynator_trie_<timestamp>.txt`
+- Benchmark ranking text report
+  - `directorynator_benchmark_<timestamp>.txt`
+- Small JSON summary files (for automation and quick ingestion)
+  - `directorynator_run_summary_<timestamp>.json`
+  - `directorynator_benchmark_summary_<timestamp>.json`
+  - `directorynator_automation_summary_<timestamp>.json`
+  - `directorynator_*_latest.json`
 
 ## Notes
 
-- fast mode is aggressive and useful for stress scenarios
-- benchmark score is depth-aware and penalizes permission/errors
-- disk mode adds storage context to benchmark outcomes
-- all scans skip inaccessible paths and keep counting errors
+- Permission-restricted paths are skipped and counted.
+- Large root scans can be expensive in I/O and runtime.
+- Benchmark results depend on filesystem type, storage medium, and active system load.
+- For production IT scheduling, run this through cron/systemd/Task Scheduler and keep output directory monitored/archived.
