@@ -1,77 +1,91 @@
 # DirectoryNator
 
-DirectoryNator now includes two implementations:
+DirectoryNator is a Python CLI utility that maps directory/file hierarchies and can be used as both:
 
-- `DirectoryNator_v1.py` for the original Python CLI flow
-- `rust_nator/` for a faster, low-level Rust binary with multi-OS support
+1. a **filesystem inventory scanner**
+2. a **multithreading benchmark + throttling test tool**
+3. an **automation utility for periodic IT security/health scans**
 
-## Rust implementation
+## What it does
 
-Path: `rust_nator/`
+- Scans a target root path and maps folders/files into timestamped report files.
+- Supports BFS, DFS, Trie, and high-throughput multithread traversal.
+- Auto-detects practical thread counts from CPU cores.
+- Benchmarks multiple thread profiles and ranks them by runtime + files/sec.
+- Produces small JSON result files for quick machine-readable reporting.
+- Can run repeatedly in automation mode (e.g., every few minutes/hours/days via scheduler wrappers).
 
-### Features
+## Requirements
 
-- multithreaded directory mapping
-- benchmark mode with worker comparison
-- stress presets (`light`, `balanced`, `hard`, `extreme`)
-- fast mode (`--fast`) for more aggressive threading
-- binary encoded output (`.bin`) plus text output (`.txt`)
-- same mapping logic: folder -> file list with summary stats
+- Python 3.9+
+- No third-party dependencies (standard library only)
 
-### Build
-
-```bash
-cd rust_nator
-cargo build --release
-```
-
-### Run mapping
+## Quick start
 
 ```bash
-cargo run --release -- --mode map --root . --fmt both --name quick
+python DirectoryNator_v1.py
 ```
 
-### Run benchmark
+Interactive menu options:
+
+1. Multi-Thread Option (CPU-aware)
+2. Algorithmic Options (Trie, BFS, DFS)
+3. Multithread Benchmark Mode
+4. Automation Mode (periodic runs)
+5. Exit
+
+## Non-interactive command modes
+
+### Multithread mapping
 
 ```bash
-cargo run --release -- --mode bench --root . --preset balanced --runs 2 --fast
+python DirectoryNator_v1.py --mode multithread --root /path/to/scan --threads 16 --throttle-ms 0
 ```
 
-### Run stress test
+### Benchmark mode
 
 ```bash
-cargo run --release -- --mode stress --root . --preset hard --fast
+python DirectoryNator_v1.py --mode benchmark --root /path/to/scan --iterations 2 --throttle-ms 1
 ```
 
-### Key args
+### Automation mode (for IT environment periodic checks)
 
-- `--mode map|bench|stress`
-- `--root <path>`
-- `--out <path>`
-- `--workers <n>`
-- `--fast`
-- `--fmt text|bin|both`
-- `--preset light|balanced|hard|extreme`
-- `--runs <n>`
-- `--name <tag>`
+```bash
+python DirectoryNator_v1.py --mode automation --automation-mode multithread --root /path/to/scan --runs 4 --interval 300
+```
 
-### Output
+Benchmark automation example:
 
-Default output folder:
+```bash
+python DirectoryNator_v1.py --mode automation --automation-mode benchmark --root /path/to/scan --runs 3 --interval 600 --iterations 2
+```
+
+## Output files
+
+All outputs are written under:
 
 ```text
-rust_nator/out/
+./directorynator/
 ```
 
-Artifacts include:
+Generated artifacts include:
 
-- `dnrs_<tag>_<ts>.txt`
-- `dnrs_<tag>_<ts>.bin`
-- `dnrs_bench_<ts>.txt`
-- `dnrs_stress_<ts>.txt`
+- Full mapping text reports
+  - `directorynator_multithread_<N>threads_<timestamp>.txt`
+  - `directorynator_bfs_<timestamp>.txt`
+  - `directorynator_dfs_<timestamp>.txt`
+  - `directorynator_trie_<timestamp>.txt`
+- Benchmark ranking text report
+  - `directorynator_benchmark_<timestamp>.txt`
+- Small JSON summary files (for automation and quick ingestion)
+  - `directorynator_run_summary_<timestamp>.json`
+  - `directorynator_benchmark_summary_<timestamp>.json`
+  - `directorynator_automation_summary_<timestamp>.json`
+  - `directorynator_*_latest.json`
 
 ## Notes
 
-- Rust version is optimized for fast repeated IT scans and performance profiling.
-- Binary encoding stores mapped data and summary counters in a compact custom format.
-- Runs on Linux, macOS, and Windows with standard Rust toolchain.
+- Permission-restricted paths are skipped and counted.
+- Large root scans can be expensive in I/O and runtime.
+- Benchmark results depend on filesystem type, storage medium, and active system load.
+- For production IT scheduling, run this through cron/systemd/Task Scheduler and keep output directory monitored/archived.
